@@ -175,7 +175,7 @@ if Set_Device=='CPU':
     device = "cpu"
 elif Set_Device=='GPU':
 #GPU
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"    #device = "cuda"
+    device = "cuda:1" if torch.cuda.is_available() else "cpu"    #device = "cuda"
 print("Using {} device".format(device))
 
 # time parameters (run extention, number of points,...)
@@ -201,9 +201,9 @@ FreqUpdateDetDir = 1 #we compute the deterministic direction every FreqUpdateDet
 
 #we want to create a single flexible network taking into account the possibility of multiclass and deep NN 
 #for Deep NN we need a list corresponding to the number of nodes of each hidden layer
-HiddenLayerNumNodes= [100]
+HiddenLayerNumNodes= [100, 100, 100, 100, 100, 100, 100, 100, 100, 100] #[500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500] #[500, 500, 500, 500, 500, 500, 500, 500, 500, 500] # #HiddenLayerNumNodes= [100]
 
-ShiftAF = 'ON'  #with this argument we shift the activation function in order to get null expectation value for nodes after activation function
+ShiftAF = 'OFF'  #with this argument we shift the activation function in order to get null expectation value for nodes after activation function
 
 IGB_flag = 'ON'
 
@@ -225,7 +225,7 @@ batches_num =0 #this variable counts the number of non-trashed batches (for exam
 SphericalConstrainMode = 'OFF'  #(WARNING: feature not implemented yet, ignore it for now)
 ClassSelectionMode = 'ON' #can be set either 'OFF' or 'ON'. setting this flag 'ON' to modify the default composition of a dataset (excluding some classes) 
 ClassImbalance = 'ON' #can be set either 'OFF' or 'ON'. setting this flag 'ON' to set imbalance ratio between classes of the dataset 
-MacroMode = 'C100' #'CIFAR10_MULTI' #Set the desired configuration for the composition of the modified dataset. The selected classes (and their relative abboundance (in case of imbalance)) can be set by LM and IR dict (see below)
+MacroMode = 'GB' #'CIFAR10_MULTI' #Set the desired configuration for the composition of the modified dataset. The selected classes (and their relative abboundance (in case of imbalance)) can be set by LM and IR dict (see below)
 ValidMode = 'Test' #('Valid' or 'Test') #can be valid or test and selsct different part of a separate dataset used only for testing/validating 
 IR = {'ON': 1./60, 'OFF': 1./7, 'MULTI': 0.6, 'DH': 1./7, 'MultiTest': 1./3, '0_4': 0.6, 'IG':1., 'GB':1., 'GB_MC':1., 'GB_Binary': 1., 'Cats_&_Dogs': 1., 'CIFAR10_MULTI':1., 'even_&_odd':1., 'C100':1.} #we define the dictionary IR to automatically associate the right imbalance ratio to the selected MacroMode
 
@@ -259,7 +259,7 @@ for i in range(0,100):
 print(C100TrivialDict)    
 
 if(ClassSelectionMode=='ON'):
-    LM = {'ON': {0:1, 1: 1, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:1, 9: 1}, 'OFF': {1: 0, 9: 1}, 'MULTI': {0:0, 1: 1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9: 9}, 'DH': {7:0, 4:1}, 'MultiTest' : {0:2, 1:1, 2:0}, '0_4': {0:0, 1: 1, 2:2, 3:3, 4:4}, 'IG': {1: 0, 9: 1}, 'GB': {0:0}, 'GB_MC':{0:0, 1: 1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9: 9}, 'GB_Binary': {0:0, 1:1}, 'Cats_&_Dogs':{3:0, 5:1}, 'CIFAR10_MULTI':{0:0, 1: 1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9: 9},'even_&_odd':{0:0, 1: 1, 2:0, 3:1, 4:0, 5:1, 6:0, 7:1, 8:0, 9:1}, 'C100': C100TrivialDict }
+    LM = {'ON': {0:1, 1: 1, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:1, 9: 1}, 'OFF': {1: 0, 9: 1}, 'MULTI': {0:0, 1: 1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9: 9}, 'DH': {7:0, 4:1}, 'MultiTest' : {0:2, 1:1, 2:0}, '0_4': {0:0, 1: 1, 2:2, 3:3, 4:4}, 'IG': {1: 0, 9: 1}, 'GB': {0:-1, 1:1}, 'GB_MC':{0:0, 1: 1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9: 9}, 'GB_Binary': {0:0, 1:1}, 'Cats_&_Dogs':{3:0, 5:1}, 'CIFAR10_MULTI':{0:0, 1: 1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9: 9},'even_&_odd':{0:0, 1: 1, 2:0, 3:1, 4:0, 5:1, 6:0, 7:1, 8:0, 9:1}, 'C100': C100TrivialDict }
     
     label_map = LM[MacroMode]#{1: 0, 9: 1} #{0:1, 1: 1, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:1, 9: 1} #{start_class:mapped_class}
     ClassesList = list(label_map.values()) #sarà utile per l'embedding in tensorboard
@@ -508,10 +508,13 @@ elif (StartMode=='RETRIEVE'):
     NetInstance.DefineRetrieveVariables() #evaluation before starting training
     NetInstance.wandb_tables_init() #this block is comtaained in the method InitialState
 
-img, lab = next(iter(NetInstance.TrainDL['Class0']))
-img = img.double()
-img = img.to(device)
-lab = lab.to(device)
+#img, lab = next(iter(NetInstance.TrainDL['Class0']))
+#img = img.double()
+#img = img.to(device)
+#lab = lab.to(device)
+
+
+
 # we want to convert the learning rate to a value independent from the dimension of the picture (and also from the batch size)
 #usually you would set criterion = 'mean'; this would normalize the loss (and so the gradient) by the shape of the input tensor
 #since with the new version of the code the classes are divided in different dataloader (and each of them could in principle have a different batch size),
@@ -635,7 +638,9 @@ if ExecutionMode=='Init':
     
     #DatasetSize=0
     
-    NetInstance.model.eval()
+    #NetInstance.model.eval()
+    NetInstance.model.train() # prep model for training    
+
     
     """
     #run over the train set: temporary substituted with the valid test to speed up the simulations
@@ -683,11 +688,11 @@ if ExecutionMode=='Init':
     """
     
     
-    for EvalKey in NetInstance.ValidDL:
-        SetFlag = 'Valid' 
+    for EvalKey in NetInstance.TrainDL:
+        SetFlag = 'Train' 
         
         
-        for dataval,labelval in NetInstance.ValidDL[EvalKey]:
+        for dataval,labelval in NetInstance.TrainDL[EvalKey]:
             #DatasetSize+=torch.numel(labelval)
     
             Mask_Flag = 1
@@ -695,6 +700,11 @@ if ExecutionMode=='Init':
             dataval = dataval.double() 
             dataval = dataval.to(device)
             labelval = labelval.to(device) 
+            
+            
+            #for p in NetInstance.model.parameters(): #just set all the params to True to not get the nonetype    
+            #    p.requires_grad = True
+                
 
             if NetInstance.params['NetMode']=='VGG_Custom_Dropout':
                 
@@ -722,8 +732,102 @@ if ExecutionMode=='Init':
                 #print('Init Guess of class {} BEFORE update : {}'.format(i, InitGuess[i]), flush=True)
                 InitGuess[i] += ((NetInstance.ValPred==i).int()).sum().item()
                 #print('Init Guess of class {} AFTER update : {}'.format(i, InitGuess[i]), flush=True)
-    InitClassFraction = InitGuess/(NetInstance.ValTotal)
-    InitClassFx = OutMeanValue/(NetInstance.ValTotal)
+
+            NetInstance.BatchEvalLossComputation(labelval) #computation of the loss function and the gradient (with backward call)
+     
+            NetInstance.loss.sum().backward()   # backward pass: compute gradient of the loss with respect to model parameters
+            """
+            if not NetInstance.layer_gradients:
+                NetInstance.layer_gradients.extend(p.grad for p in NetInstance.model.parameters())
+            else:
+                NetInstance.layer_gradients = [NetInstance.layer_gradients[i] + p.grad.clone().cpu().numpy() for i, p in enumerate(NetInstance.model.parameters())]
+            """
+    
+            NetInstance.train_loss=0
+
+
+    # Convert the list of gradients to NumPy arrays
+    
+    #layer_names = [name for name, module in NetInstance.model.named_modules() if len(module._parameters) > 0]
+    layer_names = [name for name, module in NetInstance.model.named_modules()]
+    NetInstance.layer_gradients = [p.grad.cpu().numpy() for p in NetInstance.model.parameters()]
+        
+    #NetInstance.layer_gradients = [grad.cpu().numpy() for grad in NetInstance.layer_gradients]
+    #NetInstance.layer_gradients = [grad.clone() for grad in NetInstance.layer_gradients]
+    print(NetInstance.layer_gradients)
+    # Compute and print the norms of each sub-vector (layer)
+    #layer_norms = [torch.norm(grad).item() for grad in NetInstance.layer_gradients]
+    layer_norms = [np.linalg.norm(grad) for grad in NetInstance.layer_gradients]    
+    # Print and save the norms to a file
+    
+    #detailed print on file, with module names
+    output_file_path="./layer_norms_and_names.txt"
+        
+    with open(output_file_path, "a") as output_file:
+        # Print and save layer names and their corresponding gradient norms
+        for name, grad_norm in zip(layer_names, NetInstance.layer_gradients):
+            output_line = f"Layer: {name}, Gradient Norm: {np.linalg.norm(grad_norm)}\n"
+            print(output_line)
+            output_file.write(output_line)
+
+        
+        
+    
+    with open("./layer_norms.txt", "a") as f:
+        f.write('{}\n'.format(np.array(layer_norms)))   
+
+
+
+    # Get gradients and corresponding module names with weights and biases
+    weight_gradients = []
+    bias_gradients = []
+
+    for name, module in NetInstance.model.named_children():
+        for param_name, param in module.named_parameters():
+            full_name = f"{name}.{param_name}"
+            grad_norm = np.linalg.norm(param.grad.cpu().numpy())
+            if 'weight' in param_name:
+                weight_gradients.append((full_name, grad_norm))
+            elif 'bias' in param_name:
+                bias_gradients.append((full_name, grad_norm))
+    
+
+    # Specify the file paths where you want to save the output
+    weight_output_file_path = "weight_gradients.txt"
+    bias_output_file_path = "bias_gradients.txt"
+
+    # Function to format a number in scientific notation
+    def format_scientific(num):
+        return format(num, ".4e")
+
+
+    # Save weight gradients to a file in scientific notation
+    with open(weight_output_file_path, "a") as weight_output_file:
+        for name, grad_norm in weight_gradients:
+            formatted_norm = format_scientific(grad_norm)
+            output_line = f"Module: {name}, Gradient Norm: {formatted_norm}\n"
+            weight_output_file.write(output_line)
+        weight_output_file.write("\n")
+        weight_output_file.write("\n")
+
+    
+    # Save bias gradients to a file in scientific notation
+    with open(bias_output_file_path, "a") as bias_output_file:
+        for name, grad_norm in bias_gradients:
+            formatted_norm = format_scientific(grad_norm)
+            output_line = f"Module: {name}, Gradient Norm: {formatted_norm}\n"
+            bias_output_file.write(output_line)
+
+        bias_output_file.write("\n")
+        bias_output_file.write("\n")
+
+
+    
+
+
+
+    InitClassFraction = InitGuess/(NetInstance.TrainTotal)
+    InitClassFx = OutMeanValue/(NetInstance.TrainTotal)
     
     
     
@@ -734,7 +838,7 @@ if ExecutionMode=='Init':
         np.savetxt(f, [InitClassFraction], delimiter = ',')
         
     with open("./Outup_Value.txt", "a") as f:
-        np.savetxt(f, [InitClassFx.numpy()], delimiter = ',')
+        np.savetxt(f, [InitClassFx], delimiter = ',')
         
     #we save also fractions and fx of the ordered output list 
     
@@ -744,7 +848,7 @@ if ExecutionMode=='Init':
     
     SortedInitClassFraction = InitClassFraction[SortedIdx]
         
-    SortedInitClassFx = InitClassFx[SortedIdx]
+    SortedInitClassFx = InitClassFx[SortedIdx:]
  
     with open('./OrderedClassesGI.txt', "a") as f:
         np.savetxt(f, [SortedInitClassFraction], delimiter = ',')

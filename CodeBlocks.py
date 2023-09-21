@@ -1246,6 +1246,153 @@ class Deep_HL(nn.Module, NetVariables):
 
 
 
+
+
+
+
+class SingleNode_MLP(nn.Module, NetVariables):
+    def __init__(self, params):
+        """
+        Network class: this is a simple toy network  ()MLP with 2 hidden layer 
+            In general to understand the architecture of the network is useful to read the forward method below
+
+        Parameters
+        ----------
+        params : dict
+            dict of parameters imported from Main code
+
+        Returns
+        -------
+        None.
+
+        """
+        #super(Net,self).__init__()
+        #super(Net, self).__init__(self, params['n_out'], params['NSteps'], params['n_epochs'])
+        
+        self.params = params.copy()
+        
+        nn.Module.__init__(self)
+        NetVariables.__init__(self, self.params)        
+        
+        
+        
+        # number of hidden nodes in each layer (512)
+        hidden_1 = self.params['HiddenLayerNumNodes']
+        
+        maxpooled_hidden = math.ceil(self.params['HiddenLayerNumNodes'][-1]/self.params['MaxPoolArgs']['kernel_size']) #dimension after max pooling; if you want to avoid max pooling just set stride to 1
+
+
+        # linear layer (784 -> hidden_1)
+        if  (params['Dataset']=='MNIST'):
+            input_dim = 28*28
+            self.params['HiddenLayerNumNodes'].insert(0, input_dim)
+        #NOTE: images in MNIST dataset are b&w photos with 28*28 pixels, CIFAR10 instead contain with colored photos (3 colour channel) with 32*32 pixels 
+        elif  (params['Dataset']=='CIFAR10' or params['Dataset']=='GaussBlob'):
+            input_dim = 32*32*3
+            self.params['HiddenLayerNumNodes'].insert(0, input_dim)
+        # linear layer (n_hidden -> 10)
+
+
+        self.layer1 = nn.Sequential(
+            nn.ReLU() ,
+            nn.MaxPool1d(kernel_size=self.params['MaxPoolArgs']['kernel_size'])
+            )
+        
+        self.features = self._make_layers() #TODO:  SUBSTITUTE 'D' CONFIG WITH 'VGG16' (USED ONLY TO COPY BENCHMARK)
+
+        
+        self.classifier = nn.Linear(math.ceil(self.params['HiddenLayerNumNodes'][-1]/self.params['MaxPoolArgs']['kernel_size']), 1)
+        
+        #weights initialization (this step can also be put below in a separate def)        
+        for m in self.modules():
+            if isinstance(m, torch.nn.Conv2d) or isinstance(m, torch.nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
+                #nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    #m.bias.detach().zero_()
+                    nn.init.constant_(m.bias, 0)
+        
+        
+    #I return from the forward a dictionary to get the output after each layer not only the last one
+    #this is useful for example in the inter-classes angles (calculated throught the scalar product between inner layers representation)
+    def forward(self,x):
+        
+        outs = {}
+        # flatten image input
+        if  (self.params['Dataset']=='MNIST' ):
+            x = x.view(-1,28*28)
+        #NOTE: images in MNIST dataset are b&w photos with 28*28 pixels, CIFAR10 instead contain with colored photos (3 colour channel) with 32*32 pixels 
+        elif  (self.params['Dataset']=='CIFAR10' or self.params['Dataset']=='GaussBlob'):
+            x = x.view(-1,32*32*3)
+        
+        
+        
+        L2 = self.features(x)
+        outs['l2'] = L2
+        Out = (self.classifier(L2))
+        #Out = self.BenchClassifier(Out) #TODO: UNCOMMENT ABOVE LINE AND COMMENT THIS ONE (USED ONLY TO COPY BENCHMARK)
+        outs['out'] = Out
+
+
+        
+        #print(torch.sign(Fc2).int())
+        if self.params['SignCountFlag']=='ON': #this condition doesn't work because self.params is defined in this class during init and then stay fixed; to make it work you should sent the parameter as an explicit forward input
+            for key in self.params['SignProp']:
+                self.params['SignProp'][key]+=torch.sum((torch.sign(Out).int()==key))
+                #print(key, torch.sum((torch.sign(Fc2).int()==key)))
+        
+        outs['pred'] = torch.tensor([self.params['sign_to_label_dict'][x.item()] for x in torch.sign(Out).int()]).to(self.params['device']) 
+
+        
+        #print(torch.sign(Fc2).int(), flush= True)
+        #print(outs['pred'], flush= True)
+        
+        return outs
+
+
+    def _make_layers(self):
+        layers = []
+        
+        for index in range (len(self.params['HiddenLayerNumNodes'])-1):
+            if index>0:
+                layers += [nn.Linear(math.ceil(self.params['HiddenLayerNumNodes'][index]/self.params['MaxPoolArgs']['kernel_size']) , self.params['HiddenLayerNumNodes'][index+1])]
+            else:
+                layers += [nn.Linear(self.params['HiddenLayerNumNodes'][index], self.params['HiddenLayerNumNodes'][index+1])]
+            if self.params['NetConf']=='RelU+MaxPool' : #setting self.params['MaxPoolArgs']['kernel_size'] we fall into the specific case of only ReLU
+                if self.params['ShiftAF']=='ON':   
+                    #layers+= [self.ShiftedReLU()]
+                    layers+= [self.Null_Mean_ReLU]
+                else:    
+                    layers+= [nn.ReLU()]
+                layers+= [nn.MaxPool1d(kernel_size=self.params['MaxPoolArgs']['kernel_size'])]
+        
+        #see * operator (Unpacking Argument Lists)
+        #The special syntax *args in function definitions in python is used to pass a variable number of arguments to a function. It is used to pass a non-key worded, variable-length argument list.
+        #The syntax is to use the symbol * to take in a variable number of arguments; by convention, it is often used with the word args.
+        #What *args allows you to do is take in more arguments than the number of formal arguments that you previously defined.
+        return nn.Sequential(*layers) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 channels_seq = [16, 32, 32, 64, 32]
 
 
@@ -1972,6 +2119,16 @@ class VGG_Custom_Dropout(nn.Module, NetVariables, OrthoInit):
 
 
 
+class HingeLoss(torch.nn.Module):
+
+    def __init__(self):
+        super(HingeLoss, self).__init__()
+
+    def forward(self, output, target):
+
+        hinge_loss =1 -torch.mul(output, target)
+        hinge_loss[hinge_loss < 0] = 0 #just selecting all the component of the tensor (is only one in this case) grater than 0  and putting them to 0
+        return torch.sum(hinge_loss)
 
 
 
@@ -2079,6 +2236,11 @@ class Bricks:
             print("MODULE LIST")
             for module in self.model.named_modules():
                 print(module)
+        elif(self.params['NetMode']=='SingleNode_MLP'):
+            #we define a dict to store the number of guesses for each sign (and how many null values)
+            self.params['SignProp']={0:0, -1:0, 1:0}
+            self.model = SingleNode_MLP(self.params)
+            self.params['OutShape']='Single_Node'
         elif(self.params['NetMode']=='MC_Single_HL'):
             self.model = MC_Single_HL(self.params)
             self.params['OutShape']='MultipleNodes'
@@ -2110,6 +2272,9 @@ class Bricks:
     
 
 
+        #init a list of object to take track of layers gradient; note so far is defined only for a single class (single list of object), you may want to define it for each class
+        self.layer_gradients = []
+
 
     #prepare the dataset and load it on the device
     def DataLoad(self):
@@ -2130,12 +2295,12 @@ class Bricks:
         #transform = transforms.ToTensor()
         
         #convert data to tensor and standardize them (rescale each channel of each image fixing the mean to 0 and the std to 1)
-        
-        #here we compute mean and std to standardize the dataset; we repeat the procedure every time since we could be working with a subset of classes
-        DataMean = DatasetMeanStd(self.params).Mean()
-        DataStd = DatasetMeanStd(self.params).Std()
-        print("the Mean and Std used to standardize data are {} and {}".format(DataMean, DataStd))
-        
+        if (self.params['Dataset']=='CIFAR10') or (self.params['Dataset']=='CIFAR100') or (self.params['Dataset']=='MNIST'):
+            #here we compute mean and std to standardize the dataset; we repeat the procedure every time since we could be working with a subset of classes
+            DataMean = DatasetMeanStd(self.params).Mean()
+            DataStd = DatasetMeanStd(self.params).Std()
+            print("the Mean and Std used to standardize data are {} and {}".format(DataMean, DataStd))
+            
         #TODO: correct standardization for the mnist dataset below
         if (self.params['Dataset']=='MNIST'):
             self.transform = transforms.Compose([
@@ -2203,7 +2368,7 @@ class Bricks:
             self.valid_data = GaussBlobsDataset(self.params['DataFolder'])
             num_data = len(self.train_data)
             
-            print("total number of samples ", num_data, self.train_data.data.size())
+            #print("total number of samples ", num_data, self.train_data.data.size())
         else:
             print('the third argument ypo passed to the python code is not valid', file = self.params['WarningFile'])
         
@@ -2387,8 +2552,8 @@ class Bricks:
                 print("the classes mapped in {} contains in its training dataloader {} batches".format(MC , len(self.TrainDL['Class%s'%MC])),flush=True, file = self.params['info_file_object']) 
             """
 
-        next(iter(self.TrainDL['Class0']))        
-        print('success!')        
+        #next(iter(self.TrainDL['Class0']))        
+        #print('success!')        
 
         if(self.params['ClassImbalance'] == 'OFF'):
             self.train_loader = torch.utils.data.DataLoader(self.train_data, batch_size = self.params['batch_size'],
@@ -2506,7 +2671,7 @@ class Bricks:
         #a different loss function that can be used for example in case of single output 
         self.MSELoss = nn.MSELoss(reduction='sum')
         self.Simil_HingeLoss = Simil_HingeLoss()
-        
+        self.HingeLoss = HingeLoss()
         
         
         # specify optimizer (stochastic gradient descent) and learning rate
@@ -3078,12 +3243,16 @@ class Bricks:
 
         """
 
-        if(self.params['NetMode']=='Single_HL'):
+        if(self.params['NetMode']=='Single_HL') or (self.params['NetMode']=='SingleNode_MLP'):
             #print('test of loss', type(self.output),type(torch.reshape(label, (-1,))))
             #print('test of loss', self.output,torch.reshape(label, (-1,)))
             
             #self.loss = self.MSELoss(self.output.to(torch.float32),torch.reshape(label, (-1,)).to(torch.float32)) #.float() added becauseself.MSELoss expect same type: if you use the wrong type the error will arise during the backprop command
-            self.loss= self.Simil_HingeLoss(self.output, torch.tensor([self.params['label_to_sign_dict'][x.item()] for x in torch.reshape(label, (-1,))]).to(self.params['device']))   
+            
+            #self.loss= self.Simil_HingeLoss(self.output, torch.tensor([self.params['label_to_sign_dict'][x.item()] for x in torch.reshape(label, (-1,))]).to(self.params['device']))   
+            self.loss= self.HingeLoss(self.output, torch.tensor([self.params['label_to_sign_dict'][x.item()] for x in torch.reshape(label, (-1,))]).to(self.params['device']))   
+
+            
             #print('a loss è', self.loss)
         else:
             self.loss = self.criterion(self.output,torch.reshape(label, (-1,))) #reduction = 'none' is the option to get back a single loss for each sample in the batch (for this reason I use the SampleCriterion)
